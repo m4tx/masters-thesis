@@ -1,0 +1,67 @@
+\section{Conclusion and further work}\label{sec:conclusion-and-further-work}
+
+This thesis has presented a few ways to improve compressing the DNA sequence
+data.
+It described an implementation of context binning, $k$-means model clustering,
+and how they can be combined with already known solutions such as entropy
+coders (rANS) by creating a working compressor prototype and a custom data
+format.
+The compressor has been tested on real-world data and compared with other
+widely-used tools.
+
+The compressor performs pretty well, especially when compared to generic data
+compressor tools.
+It is usually much faster than most of the competitors, and can maintain a
+decent compression ratio, too.
+The proposed methods are quite promising and worth further research,
+especially by incorporating them into existing, well-developed tools.
+This thesis, however, focused on building a new solution from scratch, so it
+can be seen how well it can perform while eliminating as many other external
+factors as possible.
+
+That being said, many improvements are emerging right now:
+
+\begin{itemize}
+    \item The model format is not very concise - in fact, it is built upon a
+    generic format to reduce the implementation time.
+    Instead, we could use a custom binary data format and do the
+    preprocessing step currently done at \emph{idencomp} startup before
+    saving the model, so it does not need to be done again later.
+    This would improve the performance and possibly make the models smaller
+    as well.
+    \item The IDN file format is quite verbose as well.
+    Although it is a custom format explicitly built for this purpose, it is
+    not very compact.
+    The main problem is that every single sequence is stored as a separate
+    slice in a block.
+    This separation adds overhead for each sequence because its length and
+    the slice size need to be stored uncompressed and because the compressor
+    resets the rANS coder state, losing the fractional bits that it could use
+    otherwise.
+    Instead, we could first concatenate all the sequences for each block and
+    store their lengths separately --- similarly to what has been done in
+    \Cref{subsec:better-ratio}.
+    We could compress the lengths as well --- even simple
+    RLE\cite{Salomon2007-bj} compression would probably suffice here, as
+    the read length is equal through the entire file in most real-world data.
+    \item The compressor tests all the chosen models for each sequence.
+    Those tests are not done very efficiently, as the compressor uses the
+    actual rANS encoder.
+    It could instead calculate the expected number of bytes using the
+    \(\log_2(1/p)\) formula, which should be much quicker.
+    \item The greedy context binning algorithm is relatively slow, especially
+    for bigger models.
+    Because of its computational and memory complexity, it is almost unusable
+    for models with more than tens of thousands of contexts.
+    It would be nice to develop a heuristic/probabilistic algorithm to use
+    bigger models efficiently and see possible improvements.
+    \item The model could be generated for a specific file instead of relying
+    on predefined models.
+    This would dramatically improve the compression ratio for unknown samples.
+    However, this would require a faster context binning algorithm and some
+    automatic method for choosing the best fitting context specifier.
+    \item Many other low-level performance improvements are possible as well.
+    For example, the underlying rANS implementation is not very fast and
+    could be replaced with a faster one (or even rewritten from scratch just
+    for this purpose).
+\end{itemize}

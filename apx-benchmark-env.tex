@@ -1,0 +1,48 @@
+\section{Benchmarking tools and environment}
+\label{sec:benchmarking-tools-and-environment}
+
+\centering
+\begin{tblr}{
+    colspec = {|c|c|c|l|},
+    row{odd} = {white},
+    row{even} = {white},
+    row{1} = {gray8},
+    row{2-Z} = {font=\footnotesize},
+    rowsep=0.1pt,
+}
+    \hline
+    Name & Version & Type & Command Line \\
+    \hline
+    \SetCell[r=2]{c}gzip & \SetCell[r=2]{c}1.10 & Compressor & \texttt{gzip -c \$INPUT > \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{gzip -c -d \$INPUT > \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}gzip\_9 & \SetCell[r=2]{c}1.10 & Compressor & \texttt{gzip -c -9 \$INPUT > \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{gzip -c -d \$INPUT > \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}pigz & \SetCell[r=2]{c}2.6 & Compressor & \texttt{pigz -c \$INPUT > \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{pigz -c -d \$INPUT > \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}bzip2 & \SetCell[r=2]{c}1.0.8 & Compressor & \texttt{bzip2 -c \$INPUT > \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{bzip2 -c -d \$INPUT > \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}bzip2\_9 & \SetCell[r=2]{c}1.0.8 & Compressor & \texttt{bzip2 -c -9 \$INPUT > \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{bzip2 -c -d \$INPUT > \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}xz & \SetCell[r=2]{c}5.2.5 & Compressor & \texttt{xz -c {-}{-}threads=16 \$INPUT > \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{xz -c -d {-}{-}threads=16 \$INPUT > \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}fqzcomp\_q2 & \SetCell[r=2]{c}4.6 & Compressor & \texttt{fqzcomp -q2 -s5+ \$INPUT \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{fqzcomp -d \$INPUT \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}fqzcomp\_q3 & \SetCell[r=2]{c}4.6 & Compressor & \texttt{fqzcomp -q3 -s5+ \$INPUT \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{fqzcomp -d \$INPUT \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}genozip & \SetCell[r=2]{c}13.0.20 & Compressor & \texttt{genozip \$INPUT -o \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{genounzip \$INPUT -o \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}spring & \SetCell[r=2]{c}{git rev.\\g5091e1b} & Compressor & \texttt{spring -c {-}{-}no-ids -t16 -i \$INPUT -o \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{spring -d -t16 -i \$INPUT -o \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}dsrc2 & \SetCell[r=2]{c}2.02 & Compressor & \texttt{dsrc c -m1 -t16 \$INPUT \$OUTPUT} \\ \hline
+    & & Decompressor & \texttt{dsrc d -t16 \$INPUT \$OUTPUT} \\ \hline
+    \SetCell[r=2]{c}idencomp & \SetCell[r=2]{c}{git rev.\\8cd39db} & Compressor & {\texttt{idencomp compress {-}{-}threads 16} \\ \texttt{\hspace{1em}{-}{-}no-identifiers \$INPUT -o \$OUTPUT}} \\ \hline
+    & & Decompressor & {\texttt{idencomp decompress {-}{-}threads 16} \\ \texttt{\hspace{1em}\$INPUT -o \$OUTPUT}} \\ \hline
+    \SetCell[r=2]{c}{idencomp\_fast} & \SetCell[r=2]{c}{git rev.\\8cd39db} & Compressor & {\texttt{idencomp compress {-}{-}threads 16 {-}{-}fast} \\ \texttt{\hspace{1em}{-}{-}no-identifiers \$INPUT -o \$OUTPUT}} \\ \hline
+    & & Decompressor & {\texttt{idencomp decompress {-}{-}threads 16} \\ \texttt{\hspace{1em}\$INPUT -o \$OUTPUT}} \\ \hline
+\end{tblr}
+
+\vspace{1em}
+\textbf{OS}: Ubuntu 22.04 LTS (x86-64);
+\textbf{CPU}: Intel(R) Xeon(R) Gold 6248 CPU @ 2.50GHz (16~vCores);
+\textbf{RAM}: 128GB;
+\textbf{Disk}: 400GB SSD

@@ -1,0 +1,35 @@
+\begin{tikzpicture}
+    \pgfplotsset{
+        table/search path={data},
+    }
+
+    \begin{semilogyaxis}
+    [
+        xlabel={Number of contexts},
+        ylabel={Rate penalty [bpv]},
+        xmin=0, xmax=27520,
+        ymin=0, ymax=0.5,
+        xmajorgrids = true,
+        xminorgrids = true,
+        minor x tick num=4,
+        ymajorgrids = true,
+        yminorgrids = true,
+        height = 8cm,
+        width = 12cm,
+        max space between ticks=40,
+        log number format code/.code={%
+            \begingroup
+            \pgfset{fixed point arithmetic,
+                number format/.cd, fixed relative, precision=2}%
+            \pgfmathparse{exp(#1)}%
+            \pgfmathprintnumber{\pgfmathresult}%
+            \endgroup
+        },
+        scaled x ticks=false,
+        grid style=dashed
+    ]
+
+        \addplot+ [color=blue, only marks, mark=*, mark size=1pt] table [x=context number, y=rate, col sep=comma] {binning.csv};
+    \end{semilogyaxis}
+\end{tikzpicture}
+

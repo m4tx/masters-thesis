@@ -1,0 +1,301 @@
+\section{Implementation}\label{sec:implementation}
+
+\subsection{Overview}\label{subsec:overview}
+
+\emph{idencomp} (jap.\hspace{0.2em}\begin{CJK}{UTF8}{min}
+                                       遺伝コンプレッサー
+\end{CJK}
+(\emph{idenkonpuressa}) --- ``genetic compressor'') is an open-source genetic
+data
+compressor built for the needs of this article.
+It was written in the Rust programming language\cite{rust} because it combines
+versatility, high performance, ease of use, and support for generics.
+The compressor has been built for modern multi-core CPUs; hence it can use
+multiple CPU threads for all the critical parts.
+
+For compressing the sequence data (acids and quality scores), the compressor
+uses \emph{rANS} (the range variant of asymmetrical numerical systems)\cite{7170048}
+combined with \emph{context binning} and \emph{\(k\)-means model clustering}
+described in \Cref{subsec:context-binning} and
+\Cref{subsec:$k$-means-model-clustering}, respectively.
+For storing the sequence names, \emph{idencomp} can use
+\emph{Deflate}\cite{rfc1951} or
+\emph{Brotli}\cite{rfc7932}, depending on the compression quality option.
+The compressor stores the compressed sequences in a custom binary data
+format, while the models are serialized using \emph{MessagePack}\cite{messagepack}.
+
+The compressor has been built with high code quality, is thoroughly
+documented, includes an extensive test suite, and uses a CI infrastructure to
+execute builds, tests, and benchmarks.
+The project has been divided into a CLI interface and an accompanying library.
+The entire compressor source code has been published on the GitHub
+platform\cite{idencomp} under the terms of the MIT license, so it is free to be
+used and modified by other researchers.
+Because of the lack of rANS implementations/bindings library for Rust, one
+called \emph{rans} has also been developed and published\cite{rans-rs} that uses
+\emph{ryg\_rans}\cite{ryg-rans} implementation written in C programming language under the hood.
+
+\subsection{Context binning}\label{subsec:context-binning}
+
+A statistical model based on previous symbols, while very appealing for our
+use case and promising a good compression ratio, has a considerable
+disadvantage: it can quickly get huge.
+Using big models not only hurts the disk storage but also affects the
+performance --- when an entire model cannot fit the CPU cache, the performance
+may worsen significantly.
+Hence, we would like to make models smaller by combining the contexts into
+some disjoint subsets.
+
+The idea for fixing this problem, proposed by Jarek Duda
+in~\cite{https://doi.org/10.48550/arxiv.2201.05028}, is called context binning.
+For any two contexts, the cost of merging them is the difference between the
+merged context rate multiplied by its probability and the sum of source
+context rates multiplied by their probabilities.
+Using this equality, one can use a greedy search algorithm to optimally bin
+the contexts while maintaining the best possible compression rate.
+
+The algorithm below presented in~\cite{https://doi.org/10.48550/arxiv.2201.05028} computes, for a given set of
+contexts $C$ and cost function $\Delta: C \times C \rightarrow \mathbb{R}$,
+a binary tree representing an optimal binning.
+
+\algnewcommand{\True}{\textbf{true}}
+\algnewcommand{\False}{\textbf{false}}
+\algnewcommand{\Null}{\textbf{null}}
+\algnewcommand{\Let}{\textbf{let }}
+\algnewcommand{\To}{\text{ to }}
+
+\begin{algorithm}[H]
+    \caption{Greedy algorithm for finding optimal binning of contexts}%
+    \label{alg:binning}%
+    \begin{algorithmic}%
+        \State\Comment{Binary tree node is a tuple (context, available,
+            left-child, right-child)}%
+
+        \Procedure{Context-Binning}{$C$}%
+            \State\Comment{$C = (c_i)_{i=1}^N$ is a list of contexts}%
+            \State{\Let $T = (c_i, \True, \Null, \Null)_{i=1}^N$ be the
+            initial list of nodes (leaves)}
+            \State{\Let $Q$ be an empty priority queue of pairs of indices in
+                $T$}
+            \For{$i \gets 1 \To N$}
+                \For{$j \gets i + 1 \To N$}
+                    \State{$\Call{Push}{Q, (i, j), \Delta(T[i].\text{context}, T[j].\text{context})}$}
+                \EndFor
+            \EndFor
+            \For{$k \gets N + 1 \To 2N-1$}
+                \State{$(i, j)\gets\Call{Pop-Active}{Q, T}$}
+                \State{$T[i].\text{available} \gets \False$}
+                \State{$T[j].\text{available} \gets \False$}
+                \State{\Let $c$ be a new context made by merging $T[i]
+                .\text{context}$ and $T[j].\text{context}$}
+                \State{$v \gets (c, \True, i, j)$}
+                \State{$\Call{Append}{T, v}$\Comment{at index $k$}}
+                \For{$l \gets 1 \To k - 1$}
+                    \State{$\Call{Push}{Q, (l, k), \Delta(T[l].\text{context}, T[k].\text{context})}$}
+                \EndFor
+            \EndFor
+            \State{\Return{$T$}}
+        \EndProcedure%
+
+        \Procedure{Pop-Active}{$Q$, $T$}%
+            \State\Comment{$Q$ is a priority queue of pairs of indices in array $T$}%
+            \State\Comment{$T$ is an array of nodes, as described above}
+
+            \Repeat
+                \State{$(i, j)\gets\Call{Pop}{Q}$}
+            \Until{$T[i].\text{available} \textbf{ and } T[j].\text{available}$}
+            \State\Return{$(i, j)$}
+        \EndProcedure
+    \end{algorithmic}%
+\end{algorithm}
+
+The main problem with using the greedy algorithm is that its computational
+and memory complexity is $\bigOTilde{n^2}$.
+Because of that, \emph{pre-binning} has been implemented as well: before doing
+the proper binning, we bin the configurable number of the least probable
+contexts into one, ignoring the cost of merging them completely.
+While this harms the compression rate of resulting models, it should make the
+computation time slightly more bearable, especially for more sizeable models.
+
+\subsection{$k$-means model clustering}\label{subsec:$k$-means-model-clustering}
+
+A single statistic model for the entire file may not be optimal for
+compressing the entire file.
+Hence, we might want to use multiple of them and select the one providing the
+smallest compressed data size for each sequence individually.
+In order to do that, we need to choose a few models to be used across the
+entire file first.
+
+An idea proposed by Jarek Duda in~\cite{https://doi.org/10.48550/arxiv.2201.05028} is an adaption of the
+$k$-means algorithm: here,
+the ``observations'' are sequences, and the ``cluster centroids'' are models.
+We use this algorithm to choose a subset of models best suited for the file,
+which we then put in the file header.
+To make this choice fast, we do it based on the first few megabytes of the
+file, assuming they share similar statistics as the rest of it.
+After this initialization step, we test each sequence with those selected
+models and use the best model for each.
+
+\begin{algorithm}[H]
+    \caption{$k$-means clustering adapted for choosing a subset of models to
+    use for the file}%
+    \label{alg:kmeans}%
+    \begin{algorithmic}%
+        \Procedure{K-Means}{$k$, $M$, $S$}%
+            \State\Comment{$k$ is an requested number of clusters}%
+            \State\Comment{$M$ is a collection of models}%
+            \State\Comment{$S$ is a collection of sequences}%
+            \State{\Let $(s_i)_{i=1}^k$ be a random subset of $S$ of size $k$}
+            \State{$R\coloneqq(R_i)_{i=1}^k \gets (\{s_i\})
+            _{i=1}^k$\Comment{$R$ is a disjoint covering of some subset of $S$}}
+            \State{$m\coloneqq(m_i)_{i=1}^k \gets \Call{Find-Means}{M, R}$}
+            \Repeat
+                \For{$i \gets 1 \To |S|$}
+                    \State{\Let $m_j$ be the best model for $S_i$ from $m$}
+                    \State{cover $S_i$ with $R_j$}
+                \EndFor
+                \State{$(m_i)_{i=1}^k \gets \Call{Find-Means}{M, R}$}
+            \Until{$R$ has not changed}
+            \State{\Return{$m$}\Comment{at this point, $R$ covers the entire
+                $S$}}
+        \EndProcedure%
+    \end{algorithmic}%
+\end{algorithm}
+
+\subsection{Compression/decompression using rANS}\label{subsec:compression
+/decompression-using-rans}
+The sequences are compressed with rANS, using prior acids and quality scores
+to compute the current context.
+Also, the compressor interleaves the outputs of two separate rANS encoders
+(one for acids and one for quality scores) into the same data buffer.
+Interleaving prevents CPU pipeline stalls by removing some immediate data
+dependencies.
+
+\subsection{Contexts}\label{subsec:contexts}
+The base of the compression algorithm used in the compressor is the context -
+the list of local symbol probabilities at a given position in the file.
+In this article, a \emph{context} will mean such list of symbol probabilities,
+and a \emph{context specifier} will be the description of a context itself - for
+example, [\texttt{A}: 20\%; \texttt{C}: 30\%; \texttt{G}: 40\%; \texttt{T}:
+10\%] is a context, and [3
+previous acids: \texttt{A}, \texttt{C}, \texttt{G}; 2 previous quality
+scores: 39, 40] is a context
+specifier.
+
+\emph{idencomp} uses Rust’s powerful generics system to rapidly define
+various types
+of context specifiers while still maintaining high performance.
+There are three distinct context specifiers: \emph{dummy}, \emph{generic},
+and \emph{light}.
+
+The \emph{dummy context specifier} treats the entire sequence as having the same
+context.
+The dummy context is mainly used for tests and comparing various context
+specifiers to some base.
+
+The \emph{generic context specifier} contains $N$ previous acids (including
+\texttt{N} - ``invalid
+read''), $M$ previous quality scores, and $P$ bits to store the position in the
+file.
+Because this context specifier stores the quality scores as defined in the
+FASTQ file, it can lead to generating huge models, as the format supports up
+to 94 different quality scores.
+The generic context specifier may generate up to $5^N \cdot 94^M \cdot 2^P$
+distinct
+contexts.
+The dummy context specifier described above can be defined as a generic
+context specifier with $N$, $M$, and $P$ equal to 0.
+
+The \emph{light context specifier} contains $N$ previous acids, $M$ previous
+quality scores (between 0 and $Q_{\text{max}}$ each), and $P$ bits to store the
+position in the file.
+The difference between generic context specifier is that the light
+variant quantizes the quality scores and replace \texttt{N} (invalid) acids with
+an \texttt{A} acid and the quality score of 0.
+This context specifier can produce much smaller models while maintaining a
+decent compression ratio.
+Specifically, this context specifier may generate up to
+$4^N \cdot {Q_\text{max}}^M \cdot 2^P$ contexts.
+
+\subsection{Model data format}\label{subsec:model-data-format}
+
+Because the model data does not need to be very concise, \emph{MessagePack}
+has been
+chosen as the data storage format for the models.
+A model file contains the model type (acids or quality scores), context
+specifier type (described in \Cref{subsec:contexts}), list of contexts
+(symbol probabilities), and map of context specifiers to context indices.
+\emph{idencomp} preprocesses that data (for example, by removing any uses of
+floating-point values) before using it with the rANS coder to achieve the
+best performance.
+
+Please see \Cref{sec:model-data-format} for more detailed information about the
+model data format.
+
+\subsection{Sequence data format}\label{subsec:sequence-data-format}
+
+\emph{idencomp} uses a custom binary format (\emph{IDN}) to store the
+compressed sequence
+data to achieve parallelism, high data density, and high customizability.
+The IDN format was inspired by the CRAM data format\cite{cram} but is much
+simpler and
+lightweight, but at the same time, it only allows for storing a more limited
+set of data.
+
+Any IDN file consists of a file header, metadata, and an arbitrary number of
+blocks.
+Currently, only one type of metadata item is supported: model identifiers,
+which indicate which models a file uses, to allow the decompressor to load
+the corresponding models (or throw an error if they are unavailable).
+
+A data block is a container for slices.
+Each slice is either a ``switch model'' slice that instructs the decompressor
+to use a specific model for the subsequent sequences or a ``sequence'' slice,
+which is a compressed sequence data.
+The sequence slice contains both acids and quality scores in a single data
+stream.
+
+The sequence names may also appear in a file unless the user has chosen not
+to include them.
+However, since compressing sequence identifiers is well-researched in other
+compressors, this article focuses entirely on compressing the sequence data.
+Hence, the input data used in the tests will not contain any sequence names.
+
+The blocks are defined mainly to allow compression and decompression
+parallelism.
+Each block can be compressed and decompressed independently, so it is
+possible to process each block in a separate CPU thread and then combine the
+results.
+Blocks enable the compressor and decompressor to use virtually any number of
+threads.
+
+Please see \Cref{sec:idn-data-format} for more detailed information about the
+IDN format.
+
+\subsection{Command-Line Interface}\label{subsec:command-line-interface}
+
+The Command-Line Interface (CLI) is the primary way of interacting with the
+compressor.
+It has four main modes of operation, which are being made use of in this
+article:
+
+\begin{itemize}
+    \item \emph{Model generation} --- reads a given FASTQ file and generates model(s)
+    using statistics calculated from that file.
+    This mode can optionally generate models for all defined context specifiers
+    in separate CPU threads.
+    It also has a context number limiter to avoid generating models too big to
+    be used in practice.
+    \item \emph{Context binning} --- reads a given model and generates a binned
+    version of it.
+    Can optionally generate N versions of equally distributed context numbers in
+    separate CPU threads.
+    \item \emph{Compression} --- compresses a given FASTQ file into an IDN file.
+    Can optionally use multithreading to compress multiple blocks in parallel.
+    \item \emph{Decompression} --- decompresses a given IDN file into a FASTQ file.
+    Can optionally use multithreading to decompress multiple blocks in parallel.
+\end{itemize}
+
+The compressor’s documentation describes more CLI options that are available.
+The article will present the same command line options used to do the
+described tests.

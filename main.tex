@@ -1,0 +1,106 @@
+\documentclass[a4paper,12pt,titlepage,table]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage[
+%hidelinks
+    colorlinks
+]{hyperref}
+\usepackage{titlesec}
+\usepackage[toc,title]{appendix}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage[noend]{algpseudocode}
+\usepackage{cleveref}
+\usepackage{newpxtext}
+\usepackage[euler-digits,euler-hat-accent]{eulervm}
+\usepackage{enumerate}
+\usepackage[font=footnotesize,labelfont=bf]{caption}    % For figure...
+\usepackage[font=footnotesize]{subcaption} % ... and subfigure
+\usepackage{CJKutf8}
+\usepackage[table]{xcolor}
+\usepackage{pgfplots}
+\usepackage{pdflscape}
+\usepackage{multirow}
+\usepackage{hhline}
+\usepackage{tabularray}
+\usepackage{bera}% optional: just to have a nice mono-spaced font
+\usepackage{listings}
+
+% We will externalize the figuresa
+\usepgfplotslibrary{external}
+\pgfplotsset{compat = 1.15}
+\tikzexternalize[prefix=build/]
+\usepackage{fp}
+\usetikzlibrary{fixedpointarithmetic}
+
+\author{Mateusz Maćkowski}
+\title{Implementation of Context Binning and Model Clustering for Compression
+of Genetic Data}
+\date{August 2022}
+
+\hypersetup{pdfinfo={
+    Title={Implementation of Context Binning and Model Clustering for
+    Compression of Genetic Data},
+    Author={Mateusz Maćkowski}
+}}
+
+\newcommand{\sectionbreak}{\clearpage}
+
+% Useful definitions
+\newcommand{\biggO}[1]{\mathcal{O}\left(#1\right)}
+\newcommand{\bigO}[1]{\mathcal{O}(#1)}
+\newcommand{\bigOTilde}[1]{\tilde{\mathcal{O}}(#1)}
+\newcommand{\substr}{\preceq}
+\newcommand{\superstr}{\succeq}
+\newcommand\boxedletter[1]{\text{%
+    \tikz[baseline=(X.base)]
+    \node (X) [draw, inner sep=0, minimum size=1.2em, rounded corners] {$#1$};}}
+\newcommand{\word}{\overline}
+\newcommand{\setR}{\mathbb{R}}
+\newcommand{\setN}{\mathbb{N}}
+\newcommand{\setQ}{\mathbb{Q}}
+\newcommand{\setZ}{\mathbb{Z}}
+\newcommand{\setC}{\mathbb{C}}
+
+\theoremstyle{plain}
+
+\begin{document}
+    \hypersetup{pageanchor=false}
+    \thispdfpagelabel{a}
+    \input{titlepage}
+    \pagenumbering{Alph}
+    \thispdfpagelabel{b}
+    \input{abstract}
+
+    \hypersetup{pageanchor=true}
+    \pagenumbering{roman}
+    \tableofcontents
+    \newpage
+    \pagenumbering{arabic}
+
+    \input{introduction}
+    \input{problem}
+    \input{implementation}
+    \input{evaluation}
+    \input{conclusion}
+
+    \bibliographystyle{acm}
+    \bibliography{bibliography}
+
+    \begin{appendices}
+        \crefalias{section}{appendix}
+        \input{apx-idn-format}
+        \input{apx-model-format}
+        \input{apx-benchmark-env}
+        \input{apx-test-data}
+        \input{apx-models}
+    \end{appendices}
+\end{document}

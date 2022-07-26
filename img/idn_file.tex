@@ -1,0 +1,17 @@
+\begin{tikzpicture}[transform shape]
+    \node at (0,3) [minimum height=1.5cm,minimum width=2.5cm,draw,align=center] (header) {File\\header};
+    \node at (2.5,3) [minimum height=1.5cm,minimum width=2.5cm,draw] (metadata) {Metadata};
+    \node at (5,3) [minimum size=1.5cm,minimum width=2.5cm,draw] (b1) {Block};
+    \node at (7.5,3) [minimum height=1.5cm,minimum width=2.5cm,style=dashed,draw,inner sep=0] (b2) {\ldots};
+    \node at (10,3) [minimum height=1.5cm,minimum width=2.5cm,draw] (b3) {Block};
+    \node at (12.5,3) [minimum size=1.5cm,minimum width=2.5cm,draw] (beof) {EOF Block};
+
+    \node at (0,0) [minimum height=1.5cm,minimum width=2cm,draw,align=center] (b_length) {Length\\(bytes)};
+    \node at (2,0) [minimum height=1.5cm,minimum width=2cm,draw,align=center] (b_checksum) {Seq.\\CRC32};
+    \node at (4.25,0) [minimum height=1.5cm,minimum width=2.5cm,draw] (slice1) {Slice};
+    \node at (6.75,0) [minimum height=1.5cm,minimum width=2.5cm,style=dashed,draw,inner sep=0] (slice2) {\ldots};
+    \node at (9.25,0) [minimum size=1.5cm,minimum width=2.5cm,draw] (slice3) {Slice};
+
+    \draw (b1.south west) -- (b_length.north west);
+    \draw (b1.south east) -- (slice3.north east);
+\end{tikzpicture}

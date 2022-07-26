@@ -1,0 +1,25 @@
+\section{Introduction}\label{sec:introduction}
+
+The rapid growth of bioinformatics databases leads to the increasing demand
+for disk storage.
+In recent years, there happened a gigantic leap in the speed of DNA
+sequencing methods, which allowed us to sequence DNAs of complex organisms,
+such as humans, quickly\cite{Ashley2016}.
+However, this leads to increasing demand for disk storage, as the sizes of
+the databases containing such data can easily reach dozens of terabytes.
+
+Therefore, it seems that it could be very beneficial to try to compress the
+sequences, hoping to make some savings and avoid needing to store such vast
+amounts of data.
+It seems that the choice of FASTQ compression tools is quite
+limited at the moment, so one can expect some improvements in both
+compression ratio and speed are possible.
+
+In his article ``Context binning, model clustering and adaptivity for data
+compression of genetic data''\cite{https://doi.org/10.48550/arxiv.2201.05028},
+Jarek Duda proposes promising compression techniques that should help build a
+compressor better than the current state of the art.
+In order to allow real-world evaluation of those
+techniques, a compressor called \emph{idencomp} has been built.
+This article focuses on this compressor's implementation details and its
+evaluation with some real-world data.

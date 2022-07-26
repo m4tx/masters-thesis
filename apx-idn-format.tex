@@ -1,0 +1,31 @@
+\section{IDN data format}\label{sec:idn-data-format}
+
+The IDN file starts with \texttt{IDENCOMP} bytes encoded in ASCII, followed
+by the version number (currently always 1).
+Then, there is the metadata section, which contains the number of metadata
+items and the items themselves.
+Currently, only one type of metadata item is supported: model identifiers,
+which indicate which models a file uses, to allow the decompressor to load
+the corresponding models (or throw an error if they are unavailable).
+
+The file header is followed by an arbitrary number of data blocks.
+The data block header consists of the compressed data length and
+CRC32\cite{rfc3385} checksum of all the sequence data in a block.
+Then, it is followed by an arbitrary number of slices.
+
+Each slice is either a ``switch model'' slice that instructs the decompressor
+to use a specific model for the subsequent sequences or a ``sequence'' slice,
+which is a compressed sequence data.
+For completeness, the sequence identifiers (names) may also appear in a file
+as a separate slice, containing all of the sequence names separated by
+newlines, and compressed using either Deflate (for lower compression quality
+options) or Brotli (for higher).
+
+\begin{figure}[!ht]
+    \centering
+    \input{img/idn_file}
+    \caption{%
+        High-level diagram of the IDN file format
+    }
+    \label{fig:idn-file-format}
+\end{figure}

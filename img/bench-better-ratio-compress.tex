@@ -1,0 +1,43 @@
+\begin{tikzpicture}
+    \tikzstyle{every node}=[font=\small]
+    \pgfplotsset{
+        table/search path={data},
+    }
+
+    \begin{semilogxaxis}
+    [
+        xlabel={Speed [MB/s]},
+        ylabel={Ratio},
+        xmin=4, xmax=1024,
+        ymin=3, ymax=7,
+        xmajorgrids = true,
+        xtick = {1, 2, 4, 8, 16, 32, 64.005, 128, 256, 512, 1024, 2048},
+        ymajorgrids = true,
+        scaled x ticks=false,
+        log number format code/.code={%
+        \begingroup
+        \pgfset{fixed point arithmetic,
+            number format/.cd, fixed relative, precision=4}%
+        \pgfmathparse{exp(#1)}%
+        \pgfmathprintnumber{\pgfmathresult}%
+        \endgroup
+        },
+        height = 9cm,
+        grid style=dashed
+    ]
+
+        \addplot+ [
+            only marks,
+            mark=*,
+            nodes near coords*={\Label},
+            visualization depends on={value \thisrow{cmd} \as \Label},
+            visualization depends on={value \thisrow{compress_anchor} \as \myanchor},
+            every node near coord/.append style={anchor=\myanchor}
+        ] table [
+            x expr={\thisrow{compress_speed} / 1000000},
+            y expr={1 / \thisrow{ratio}},
+            col sep=comma
+        ] {better-ratio.csv};
+    \end{semilogxaxis}
+\end{tikzpicture}
+

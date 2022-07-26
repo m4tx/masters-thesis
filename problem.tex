@@ -1,0 +1,31 @@
+\section{Problem description}\label{sec:problem-description}
+
+We would like to be able to compress a DNA sequence read from a
+FASTQ\cite{fastq} file containing both the acids and quality scores so that
+it takes less space while getting a better compression rate/speed ratio than
+other widely used compression methods.
+In other words, we have a set of sequences \((a_i, q_i)_{i=1}^N\), where \(a_i\)
+is an acid (i.e., $a_i \in \{\mathtt{A}, \mathtt{C}, \mathtt{T}, \mathtt{G},
+\mathtt{N}\}$, where \texttt{N} is an invalid nucleotide), and \(q_i\) is a
+quality score (a non-negative integer up to between 40 and 94, depending on
+the sequencing method), and want to compress it.
+
+A popular approach is encoding the data \emph{symbol-by-symbol}, using a
+conditional
+distribution of the following symbol based on a few previous ones or possibly
+some other context information.
+With an accurate entropy coder, such as Asymmetric Numeral Systems (ANS)\cite{7170048}, a
+symbol of probability \(p\) requires \(\log_2(1/p)\) bits to be encoded.
+Hence, by combining such a statistical model with ANS, a compressor would
+achieve a close-to-entropy compression ratio.
+
+The compressor could be equipped with a set of commonly used statistical
+models so that they would not need to be a part of the compressed file.
+It also should allow using some external models if needed for flexibility.
+The decompressor should be able to use those standard models and display an
+error message if an unknown model appears in a specific file.
+Also, the compressor should be able to automatically choose the model best
+matching the currently processed sequence so that it takes as little disk
+space as possible.
+Also, both the compressor and decompressor could use multiple CPU threads to
+make the file processing faster.
