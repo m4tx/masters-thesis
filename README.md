@@ -17,7 +17,8 @@ compression tools.
 
 ## Download
 
-The PDF file can be downloaded from the GitHub Releases page.
+The PDF file can be downloaded from the
+[GitHub Releases page](https://github.com/m4tx/masters-thesis/releases/download/final/Implementation_of_Context_Binning_and_Model_Clustering_for_Compression_of_Genetic_Data.pdf).
 
 ## Building
 
